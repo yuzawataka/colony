@@ -28,8 +28,9 @@ use = egg:dispatcher#keystone_proxy
 keystone_proxy_common_path = /ks
 keystone_proxy_auth_path = auth
 keystone_proxy_admin_path = admin
-relay_rule = /etc/dispatcher/ks_server0.txt, remote:/etc/dispatcher/ks_server1.txt, both:(hoge)/etc/dispatcher/ks_server0.txt (gere)/etc/dispatcher/ks_server1.txt
+relay_rule = :/etc/dispatcher/ks_server0.txt, remote:/etc/dispatcher/ks_server1.txt, merge:(hoge)/etc/dispatcher/ks_server0.txt (gere)/etc/dispatcher/ks_server1.txt
 dispatcher_base_url = http://172.30.112.168:10000
+region_name = RegionOne
 keystone_auth_port = 5000
 keystone_admin_port = 35357
 conn_timeout = 0.5
@@ -95,7 +96,10 @@ class KeystoneProxy(object):
         ks_port = self.keystone_auth_port \
             if api_type == self.keystone_proxy_auth_path \
             else self.keystone_admin_port
-        (succ_resps, fail_resps) = self.request_to_ks(req, self.loc.swift_of(loc_prefix), ks_port)
+        servers = self.loc.swift_of(loc_prefix)
+        if not servers:
+            return HTTPPreconditionFailed(body='invalid Location prefix')(env, start_response)
+        (succ_resps, fail_resps) = self.request_to_ks(req, servers, ks_port)
         if len(succ_resps) == 0:
             resp = fail_resps[0]
             if isinstance(resp, HTTPException):
