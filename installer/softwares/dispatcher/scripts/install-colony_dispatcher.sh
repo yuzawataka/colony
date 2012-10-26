@@ -17,4 +17,7 @@ if test ! -d $colony_dispatcher_dir/data; then
 fi
 python setup.py install --record=$cwd/softwares/dispatcher/data/install-files.txt
 
+groupadd dispatcher
+useradd -g dispatcher dispatcher
+
 popd

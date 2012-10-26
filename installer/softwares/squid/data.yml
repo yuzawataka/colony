@@ -9,18 +9,18 @@ config_item_defaults:
   - name: cache_mem
     value: "2048 MB"
   - name: maximum_object_size_in_memory
-    value: "1024 MB"
+    value: "8 KB"
   - name: cache_dir
-    value: "ufs /var/spool/squid 20480 16 256"
+    value: "ufs /var/spool/squid3 20480 16 256"
   - name: maximum_object_size
     value: "5242890 KB"
   - name: access_log
-    value: "/var/log/squid/access.log squid"
+    value: "/var/log/squid3/access.log squid"
   - name: coredump_dir
-    value: "/var/spool/squid"
+    value: "/var/spool/squid3"
 
 component_config_defaults:
-  - path: /etc/squid/squid.conf
+  - path: /etc/squid3/squid.conf
     component: colony_squid
 
 software_config_defaults:

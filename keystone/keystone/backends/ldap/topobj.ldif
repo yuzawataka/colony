@@ -1,0 +1,21 @@
+dn: cn=keystone
+objectClass: top
+objectClass: applicationProcess
+objectClass: simpleSecurityObject
+cn: keystone
+description: keystone DIT
+userPassword: {SSHA}j+wZzyB04ku3dCtaQh3fcLYiBgz7HbI9
+
+dn: ou=Users,cn=keystone
+objectClass: organizationalUnit
+ou: Users
+
+dn: ou=Tenants,cn=keystone
+objectClass: organizationalUnit
+ou: Tenants
+
+dn: ou=Roles,cn=keystone
+objectClass: organizationalUnit
+ou: Roles
+
+
