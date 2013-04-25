@@ -15,6 +15,7 @@ setup(name='swift_ring_sync',
       url='',
       license='',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
+      package_data = {'': ['stub.conf']},
       include_package_data=True,
       zip_safe=False,
       install_requires=[

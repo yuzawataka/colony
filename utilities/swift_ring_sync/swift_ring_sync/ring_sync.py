@@ -52,7 +52,6 @@ class RingSync(object):
         self.conn = None
         retry_times = 3
         if self.internal:
-            self._create_stub_conf()
             try:
                 conf_path = join(abspath(dirname(__file__)), 'stub.conf')
                 self.conn = InternalClient(conf_path, 'swift_ring_sync',
@@ -296,27 +295,3 @@ class RingSync(object):
                 return hashlib.md5(f.read()).hexdigest()
         except Exception, msg:
             raise RingSyncError('Read ring(%s) faild: [%s]' % (filename, msg))
-
-    def _create_stub_conf(self):
-        """ """
-        stub = """
-[pipeline:main]
-pipeline = catch_errors cache proxy-server
-
-[app:proxy-server]
-use = egg:swift#proxy
-
-[filter:cache]
-use = egg:swift#memcache
-
-[filter:catch_errors]
-use = egg:swift#catch_errors
-"""
-        conf_path = join(abspath(dirname(__file__)), 'stub.conf')
-        if not exists(conf_path):
-            try:
-                with open(conf_path, 'wb') as f:
-                    f.write(stub)
-            except IOError, msg:
-                raise RingSyncError(
-                    'Stub conf of InternalClient create failed: [%s]' % msg)
