@@ -16,27 +16,54 @@
 # under the License.
 
 import logging
+import os
 import shlex
 from subprocess import check_call, CalledProcessError
 import sys
 
 
 def exec_hook_cmd(exec_cmd, label='', continue_on_fail=False, logger=None):
-    """ command launcher in script """
+    """
+    command launcher in script
+    Config keys (like 'ring_dir') are exported to environ variables with prefix 'srs_'.
+    So hook command can call that variables.
+
+    ex: "hook_command_pre_sync = ls ${srs_ring_dir}" -> "ls /etc/swift"
+        "hook_command_post_sync = test.sh"
+
+        "test.sh" as following.
+        ---------------
+        #!/bin/bash
+        for i in ${srs_rings}
+        do
+          echo ${i}
+        done
+        exit 0
+        ---------------
+    """
+    def unparen(str):
+	return str.replace('$', '').replace('{', '').replace('}', '')
     if not exec_cmd:
         return True
+    cmds = []
+    for cmd in shlex.split(exec_cmd):
+        if cmd.startswith('$'):
+            cmds.append(os.getenv(unparen(cmd)))
+        else:
+            cmds.append(cmd)
     try:
-        check_call(shlex.split(exec_cmd))
+        check_call(cmds)
     except OSError, msg:
-        p('%s cmd(%s) failed: [%s]' % (label, exec_cmd, msg), logger=logger)
+        p('%s cmd(%s) failed: [%s]' % (label, ' '.join(cmds), msg), logger=logger)
     except CalledProcessError as e:
-        p('%s cmd(%s) failed: rc=%s [%s]' % (label, exec_cmd, e.returncode, e),
+        p('%s cmd(%s) failed: rc=%s [%s]' % (label, ' '.join(cmds), e.returncode, e),
            logger=logger, lv='warn')
         if not continue_on_fail:
             sys.exit(e.returncode)
         return True
-    p('%s cmd(%s) succeed.' % (label, exec_cmd), logger=logger)
-    return True
+    else:
+        p('%s cmd(%s) succeed.' % (label, ' '.join(cmds)), logger=logger)
+        return True
 
 
 def log_level(lv='info'):

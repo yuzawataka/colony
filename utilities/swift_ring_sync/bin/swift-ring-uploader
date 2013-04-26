@@ -57,6 +57,15 @@ def main(argv):
     rings = 'account.ring.gz container.ring.gz object.ring.gz'
     rings = _conf('rings', rings).split()
 
+    os.environ['srs_container'] = container
+    os.environ['srs_ring_dir'] = ring_dir
+    os.environ['srs_ring_backup_dir'] = ring_backup_dir
+    os.environ['srs_auth_url'] = auth_url
+    os.environ['srs_identity'] = identity
+    os.environ['srs_password'] = password
+    os.environ['srs_account_id'] = account_id
+    os.environ['srs_rings'] = ' '.join(rings)
+
     cmd_pre_upload = _conf('hook_command_pre_upload', '')
     cmd_upload_success = _conf('hook_command_upload_success', '')
     cmd_upload_failure = _conf('hook_command_upload_failure', '')

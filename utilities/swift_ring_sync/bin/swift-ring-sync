@@ -17,6 +17,7 @@
 
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
+import os
 from swift_ring_sync import RingSync, RingSyncError
 from swift_ring_sync.utils import *
 import sys
@@ -57,6 +58,16 @@ def main(argv):
     log = _conf('log', '')
     rings = 'account.ring.gz container.ring.gz object.ring.gz'
     rings = _conf('rings', rings).split()
+
+    os.environ['srs_container'] = container
+    os.environ['srs_ring_dir'] = ring_dir
+    os.environ['srs_ring_backup_dir'] = ring_backup_dir
+    os.environ['srs_auth_url'] = auth_url
+    os.environ['srs_identity'] = identity
+    os.environ['srs_password'] = password
+    os.environ['srs_account_id'] = account_id
+    os.environ['srs_max_backup'] = str(max_backup)
+    os.environ['srs_rings'] = ' '.join(rings)
 
     cmd_pre_sync = _conf('hook_command_pre_sync', '')
     cmd_sync_success = _conf('hook_command_sync_success', '')
