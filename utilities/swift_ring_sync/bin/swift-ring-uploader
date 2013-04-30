@@ -56,10 +56,10 @@ def main(argv):
     log = _conf('log', '')
     rings = 'account.ring.gz container.ring.gz object.ring.gz'
     rings = _conf('rings', rings).split()
+    quiet = _bool(_conf('quiet', 'no'))
 
     os.environ['srs_container'] = container
     os.environ['srs_ring_dir'] = ring_dir
-    os.environ['srs_ring_backup_dir'] = ring_backup_dir
     os.environ['srs_auth_url'] = auth_url
     os.environ['srs_identity'] = identity
     os.environ['srs_password'] = password
@@ -83,7 +83,7 @@ def main(argv):
 
     # command hook before upload start
     exec_hook_cmd(cmd_pre_upload, 'pre upload',
-                  cmd_pre_upload_cont_fail, logger)
+                  cmd_pre_upload_cont_fail, logger, quiet)
 
     rc = 0
     try:
@@ -93,35 +93,45 @@ def main(argv):
             rs = RingSync(identity, auth_url=auth_url, password=password,
                           internal=False)
     except RingSyncError, msg:
-        p(msg, lv='warn', logger=logger)
+        p(msg, lv='warn', logger=logger, quiet=quiet)
         rc = 1
         sys.exit(rc)
 
     results = []
+    upload_no_need = []
+    upload_success = []
+    upload_failure = []
     for ring in rings:
         try:
             if not rs.put_rings(join(ring_dir, ring)):
-                p('%s is already up-to-date.' % ring, logger=logger)
+                upload_no_need.append(ring)
+                p('%s is already up-to-date.' % ring, logger=logger, quiet=quiet)
             else:
-                p('%s upload is succeed.' % ring, logger=logger)
+                upload_success.append(ring)
+                p('%s upload is succeed.' % ring, logger=logger, quiet=quiet)
         except RingSyncError, msg:
+            upload_failure.append(ring)
             p('%s upload is failed. [%s]' % (ring, msg), logger=logger,
-              lv='warn')
+              lv='warn', quiet=quiet)
             rc = 1
             results.append(False)
+
+    os.environ['srs_upload_no_need'] = ' '.join(upload_no_need)
+    os.environ['srs_upload_success'] = ' '.join(upload_success)
+    os.environ['srs_upload_failure'] = ' '.join(upload_failure)
 
     # command hook when upload success or fail.
     if False not in results:
         exec_hook_cmd(cmd_upload_success, 'upload succeed',
-                      cmd_upload_success_cont_fail, logger)
+                      cmd_upload_success_cont_fail, logger, quiet)
     else:
         rc = 1
         exec_hook_cmd(cmd_upload_failure, 'upload failed',
-                      cmd_upload_failure_cont_fail, logger)
+                      cmd_upload_failure_cont_fail, logger, quiet)
 
     # command hook after upload
     exec_hook_cmd(cmd_post_upload, 'post upload',
-                  cmd_post_upload_cont_fail, logger)
+                  cmd_post_upload_cont_fail, logger, quiet)
     sys.exit(rc)
 
 if __name__ == '__main__':

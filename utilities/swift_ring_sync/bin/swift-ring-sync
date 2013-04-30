@@ -58,6 +58,7 @@ def main(argv):
     log = _conf('log', '')
     rings = 'account.ring.gz container.ring.gz object.ring.gz'
     rings = _conf('rings', rings).split()
+    quiet = _bool(_conf('quiet', 'no'))
 
     os.environ['srs_container'] = container
     os.environ['srs_ring_dir'] = ring_dir
@@ -85,7 +86,7 @@ def main(argv):
     logger = log_init(log, 'info')
 
     # command hook before sync start
-    exec_hook_cmd(cmd_pre_sync, 'pre sync', cmd_pre_sync_cont_fail, logger)
+    exec_hook_cmd(cmd_pre_sync, 'pre sync', cmd_pre_sync_cont_fail, logger, quiet)
 
     rc = 0
     try:
@@ -95,38 +96,48 @@ def main(argv):
             rs = RingSync(identity, auth_url=auth_url, password=password,
                           internal=False)
     except RingSyncError, msg:
-        p(msg, lv='warn', logger=logger)
+        p(msg, lv='warn', logger=logger, quiet=quiet)
         rc = 1
         sys.exit(rc)
 
     results = []
+    sync_no_need = []
+    sync_success = []
+    sync_failure = []
     for ring in rings:
         try:
             temp_ring = rs.get_rings(ring, ring_dir=ring_dir)
             if not temp_ring:
-                p('%s is already up-to-date.' % ring, logger=logger)
+                sync_no_need.append(ring)
+                p('%s is already up-to-date.' % ring, logger=logger, quiet=quiet)
             else:
                 rs.update_ring_file(temp_ring, ring, ring_dir=ring_dir,
                                     ring_backup_dir=ring_backup_dir,
                                     max_backup=max_backup, dir_create=True)
-                p('%s update is succeed.' % ring, logger=logger)
+                sync_success.append(ring)
+                p('%s update is succeed.' % ring, logger=logger, quiet=quiet)
         except RingSyncError, msg:
+            sync_failure.append(ring)
             p('%s update is failed. [%s]' % (ring, msg), logger=logger,
-               lv='warn')
+               lv='warn', quiet=quiet)
             rc = 1
             results.append(False)
+
+    os.environ['srs_sync_no_need'] = ' '.join(sync_no_need)
+    os.environ['srs_sync_success'] = ' '.join(sync_success)
+    os.environ['srs_sync_failure'] = ' '.join(sync_failure)
 
     # command hook when sync success or fail.
     if False not in results:
         exec_hook_cmd(cmd_sync_success, 'sync succeed',
-                      cmd_sync_success_cont_fail, logger)
+                      cmd_sync_success_cont_fail, logger, quiet)
     else:
         rc = 1
         exec_hook_cmd(cmd_sync_failure, 'sync failed',
-                      cmd_sync_failure_cont_fail, logger)
+                      cmd_sync_failure_cont_fail, logger, quiet)
 
     # command hook after sync
-    exec_hook_cmd(cmd_post_sync, 'post sync', cmd_post_sync_cont_fail, logger)
+    exec_hook_cmd(cmd_post_sync, 'post sync', cmd_post_sync_cont_fail, logger, quiet)
     sys.exit(rc)
 
 if __name__ == '__main__':

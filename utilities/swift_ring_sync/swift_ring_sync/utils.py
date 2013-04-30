@@ -17,12 +17,11 @@
 
 import logging
 import os
-import shlex
 from subprocess import check_call, CalledProcessError
 import sys
 
 
-def exec_hook_cmd(exec_cmd, label='', continue_on_fail=False, logger=None):
+def exec_hook_cmd(exec_cmd, label='', continue_on_fail=False, logger=None, quiet=False):
     """
     command launcher in script
     Config keys (like 'ring_dir') are exported to environ variables with prefix 'srs_'.
@@ -41,28 +40,18 @@ def exec_hook_cmd(exec_cmd, label='', continue_on_fail=False, logger=None):
         exit 0
         ---------------
     """
-    def unparen(str):
-	return str.replace('$', '').replace('{', '').replace('}', '')
-    if not exec_cmd:
-        return True
-    cmds = []
-    for cmd in shlex.split(exec_cmd):
-        if cmd.startswith('$'):
-            cmds.append(os.getenv(unparen(cmd)))
-        else:
-            cmds.append(cmd)
     try:
-        check_call(cmds)
+        check_call(exec_cmd, shell=True)
     except OSError, msg:
-        p('%s cmd(%s) failed: [%s]' % (label, ' '.join(cmds), msg), logger=logger)
+        p('%s cmd(%s) failed: [%s]' % (label, exec_cmd, msg), logger=logger, quiet=quiet)
     except CalledProcessError as e:
-        p('%s cmd(%s) failed: rc=%s [%s]' % (label, ' '.join(cmds), e.returncode, e),
-           logger=logger, lv='warn')
+        p('%s cmd(%s) failed: rc=%s [%s]' % (label, exec_cmd, e.returncode, e),
+           logger=logger, lv='warn', quiet=quiet)
         if not continue_on_fail:
             sys.exit(e.returncode)
         return True
     else:
-        p('%s cmd(%s) succeed.' % (label, ' '.join(cmds)), logger=logger)
+        p('%s cmd(%s) succeed.' % (label, exec_cmd), logger=logger, quiet=quiet)
         return True
 
 
@@ -94,8 +83,9 @@ def log_init(log=None, default='info'):
     return logger
 
 
-def p(msg, logger=None, lv='info'):
+def p(msg, logger=None, lv='info', quiet=False):
     """ """
-    print msg
+    if not quiet:
+        print msg
     if logger:
         logging.log(log_level(lv), msg)
